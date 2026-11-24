@@ -5,7 +5,7 @@ import mysql.connector
 app = Flask(__name__)
 
 db_config = {
-    "host": "mysql",  # Change if necessary
+    "host": "database",  # Change if necessary
     "port": 3306,
     "user": "sensor_app",
     "password": "your_password",
