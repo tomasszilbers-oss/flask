@@ -1,0 +1,32 @@
+from flask import Flask
+import mysql.connector
+
+app = Flask(__name__)
+
+db_config = {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "sensor_app",
+    "password": "your_password",
+    "database": "sensor_db"
+}
+
+@app.route('/sensor/data', methods=['GET'])
+def receive_data():
+
+    connection = mysql.connector.connect(**db_config)
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""SELECT * FROM sensor_data
+                       where id>=2500""")
+        DBData = cursor.fetchall()
+        print(DBData)
+        cursor.close()
+        return "Data received", 200
+
+    finally:
+        connection.close()
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
