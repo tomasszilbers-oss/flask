@@ -1,11 +1,11 @@
+
 from flask import Flask, request, jsonify
 import mysql.connector
 
 app = Flask(__name__)
 
-# MySQL connection settings
 db_config = {
-    "host": "127.0.0.1",
+    "host": "mysql",  # Change if necessary
     "port": 3306,
     "user": "sensor_app",
     "password": "your_password",
@@ -13,6 +13,7 @@ db_config = {
 }
 
 
+# RECEIVE SENSOR DATA
 @app.route('/sensor/data', methods=['POST'])
 def receive_data():
     data = request.get_json(silent=True)
@@ -31,42 +32,58 @@ def receive_data():
     cursor = None
 
     try:
-        # Connect to MySQL
         connection = mysql.connector.connect(**db_config)
         cursor = connection.cursor()
 
-        # Insert sensor data
         sql = """
             INSERT INTO sensor_data (light, temperature, humidity)
             VALUES (%s, %s, %s)
         """
 
-        values = (light, temperature, humidity)
-
-        cursor.execute(sql, values)
+        cursor.execute(sql, (light, temperature, humidity))
         connection.commit()
-
-        print(f"Light: {light}")
-        print(f"Temperature: {temperature}")
-        print(f"Humidity: {humidity}")
 
         return jsonify({
             "status": "success",
             "id": cursor.lastrowid
         }), 200
 
-    except mysql.connector.Error as err:
+    except mysql.connector.Error:
         app.logger.exception("MySQL error")
-        return jsonify({
-            "status": "error",
-            "message": "Database operation failed"
-        }), 500
+        return jsonify({"status": "error", "message": "Database error"}), 500
 
     finally:
-        if cursor is not None:
+        if cursor:
             cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
 
-        if connection is not None and connection.is_connected():
+
+# READ SENSOR DATA
+@app.route('/sensor/data', methods=['GET'])
+def get_data():
+    connection = None
+    cursor = None
+
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+
+        cursor.execute("SELECT * FROM sensor_data")
+        DBData = cursor.fetchall()
+
+        print(DBData)
+
+        return jsonify(DBData), 200
+
+    except mysql.connector.Error:
+        app.logger.exception("MySQL error")
+        return jsonify({"status": "error", "message": "Database error"}), 500
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
             connection.close()
 
 
